@@ -11,7 +11,7 @@ let max, min;
 let chart_type="heat_map"
 let pitch = 0;
 let pos = null;
-let file = 'during_new.csv'
+let file = 'public/during_new.csv'
 let map = null
 function successLocation(position) {
     console.log(position)
@@ -24,7 +24,7 @@ function errorLocation() {
 }
 
 function changeYear() {
-    file = file == 'before_new.csv' ? 'during_new.csv' : 'before_new.csv'
+    file = file == 'public/before_new.csv' ? 'public/during_new.csv' : 'public/before_new.csv'
     year = document.getElementById('year');
     year.innerText = year.innerText == '2020' ? '2019' : '2020';
     const center = map.getCenter();
