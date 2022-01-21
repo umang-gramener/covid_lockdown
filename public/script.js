@@ -25,8 +25,6 @@ function errorLocation() {
 
 function changeYear() {
     file = file == 'public/before_new.csv' ? 'public/during_new.csv' : 'public/before_new.csv'
-    year = document.getElementById('year');
-    year.innerText = year.innerText == '2020' ? '2019' : '2020';
     const center = map.getCenter();
     const zoom = map.getZoom();
     console.log(center)
