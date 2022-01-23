@@ -2,21 +2,23 @@
 
 console.log(deck)
 const { MapboxLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, DeckGL } = deck;
-const {scaleThreshold} = d3-scale;
+const { scaleThreshold } = d3 - scale;
 mapboxgl.accessToken = 'pk.eyJ1IjoibXJpbmFsc2hhcm1hIiwiYSI6ImNreTJ6YjdidjBxZmIzMGxsYzhjdm9rb2kifQ.N0fWE4F8NTMXiwUBcWYsVw';
 
 navigator.geolocation.getCurrentPosition(successLocation, errorLocation, { enableHighAccuracy: true })
 let max, min;
 
-let chart_type="heat_map"
+let chart_type = "heat_map"
 let pitch = 0;
 let pos = null;
-let file = 'public/during_new.csv'
+let year = "2020";
+let prefix = "";
+let suffix = "_data.csv";
+let file = prefix + year + suffix
 let map = null
 function successLocation(position) {
-    console.log(position)
     pos = position;
-    setupmap([position.coords.longitude, position.coords.latitude],3.4)
+    setupmap([position.coords.longitude, position.coords.latitude], 3.4)
 }
 
 function errorLocation() {
@@ -24,11 +26,12 @@ function errorLocation() {
 }
 
 function changeYear() {
-    file = file == 'public/before_new.csv' ? 'public/during_new.csv' : 'public/before_new.csv'
+    year = year == "2020" ? "2019" : "2020"
+    file = prefix + year + suffix
+    console.log(file)
     const center = map.getCenter();
     const zoom = map.getZoom();
-    console.log(center)
-    setupmap(center,zoom)
+    setupmap(center, zoom)
 }
 
 function changeView(value){
@@ -40,8 +43,44 @@ function changeView(value){
     setupmap(center,zoom)
 }
 
-function setupmap(center,zoom) {
 
+function makeBucket(max, min) {
+    var arr = [];
+    var step = (max - min) / 6;
+    for (var i = 0; i < 7; i++) {
+        arr.push(min + (step * i));
+    }
+    bucket = arr;
+    console.log(bucket)
+    return arr;
+}
+
+
+function sendBucket(val) {
+    let res
+    if (val > bucket[0] && val < bucket[1]) {
+        res = 1;
+    }
+    else if (val > bucket[1] && val < bucket[2]) {
+        res = 2;
+    }
+    else if (val > bucket[2] && val < bucket[3]) {
+        res = 3;
+    }
+    else if (val > bucket[3] && val < bucket[4]) {
+        res = 4;
+    }
+    else if (val > bucket[4] && val < bucket[5]) {
+        res = 5;
+    }
+    else {
+        res = 6;
+    }
+    return res
+}
+
+
+function mapLoad(data, data_hex, bucket, center, zoom) {
     map = new mapboxgl.Map({
         container: document.body,
         style: 'mapbox://styles/mapbox/dark-v10', // style URL,
@@ -51,61 +90,6 @@ function setupmap(center,zoom) {
         controller: true,
         pitch: pitch
     });
-
-    let data = null;
-    let data_hex = null;
-    let bucket = [];
-    const nav = new mapboxgl.NavigationControl();
-    map.addControl(nav);
-
-    function makeBucket(max, min) {
-        var arr = [];
-        var step = (max - min) / 6;
-        for (var i = 0; i < 7; i++) {
-            arr.push(min + (step * i));
-        }
-        bucket = arr;
-        console.log(bucket)
-    }
-
-
-    function sendBucket(val) {
-        let res
-        if (val > bucket[0] && val < bucket[1]) {
-            res = 1;
-        }
-        else if (val > bucket[1] && val < bucket[2]) {
-            res = 2;
-        }
-        else if (val > bucket[2] && val < bucket[3]) {
-            res = 3;
-        }
-        else if (val > bucket[3] && val < bucket[4]) {
-            res = 4;
-        }
-        else if (val > bucket[4] && val < bucket[5]) {
-            res = 5;
-        }
-        else {
-            res = 6;
-        }
-        return res
-    }
-
-    d3.csv(file).then(response => {
-        let val_arr = response.map(d => Number(d.value))
-        makeBucket(Math.max(...val_arr), Math.min(...val_arr))
-        data = response.map(d => [Number(d.longitude), Number(d.latitude),Number(d.value),sendBucket(Number(d.value))]);
-        // console.log(data);
-        data_hex = response.map(d => {
-            return {
-                hex: h3.geoToH3(Number(d.latitude),Number(d.longitude), 4),
-                count: Number(d.value)
-            }
-        })
-        console.log(data_hex)
-    });
-
     const COLOR_RANGE = [
         [1, 152, 189],
         [73, 227, 206],
@@ -143,39 +127,39 @@ function setupmap(center,zoom) {
             }
         }, firstLabelLayerId);
 
-        if(chart_type=='heat_map'){
+        if (chart_type == 'heat_map') {
             intensity = 1,
-            threshold = 0.03,
-            radiusPixels = 20,
-            // console.log(bucket[0],bucket[6])
-            // console.log(data_hex)
+                threshold = 0.03,
+                radiusPixels = 20,
+                // console.log(bucket[0],bucket[6])
+                // console.log(data_hex)
 
-            map.addLayer(new MapboxLayer({
-                data,
-                id: 'heatmp-layer',
-                type: HeatmapLayer,
-                colorRange:COLOR_RANGE,
-                aggregation:'MEAN',
-                pickable: true,
-                getPosition: d => [d[0], d[1]],
-                getWeight: d => d[2],
-                radiusPixels,
-                intensity,
-                threshold,
-                getTooltip: ({ object }) => object && object.message
-            }))
+                map.addLayer(new MapboxLayer({
+                    data,
+                    id: 'heatmp-layer',
+                    type: HeatmapLayer,
+                    colorRange: COLOR_RANGE,
+                    aggregation: 'MEAN',
+                    pickable: true,
+                    getPosition: d => [d[0], d[1]],
+                    getWeight: d => d[2],
+                    radiusPixels,
+                    intensity,
+                    threshold,
+                    getTooltip: ({ object }) => object && object.message
+                }))
             // data_hex='https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/sf.h3cells.json',
-        }else{
+        } else {
             const colorScaleFunction = d3.scaleThreshold()
-            .domain(bucket)
-            .range([
-                [65, 182, 196],
-                [254, 178, 76],
-                [253, 141, 60],
-                [252, 78, 42],
-                [227, 26, 28],
-                [189, 0, 38],
-            ]);
+                .domain(bucket)
+                .range([
+                    [65, 182, 196],
+                    [254, 178, 76],
+                    [253, 141, 60],
+                    [252, 78, 42],
+                    [227, 26, 28],
+                    [189, 0, 38],
+                ]);
 
             map.addLayer(new MapboxLayer({
                 id: 'h3-hexagon-layer',
@@ -193,6 +177,28 @@ function setupmap(center,zoom) {
             }))
         }
 
+    });
+    const nav = new mapboxgl.NavigationControl();
+    map.addControl(nav);
+}
+function setupmap(center, zoom) {
+    let data = null;
+    let data_hex = null;
+    let bucket = [];
+    d3.csv(file).then(response => {
+        let val_arr = response.map(d => Number(d.value))
+        bucket = makeBucket(Math.max(...val_arr), Math.min(...val_arr))
+        data = response.map(d => [Number(d.longitude), Number(d.latitude), Number(d.value), sendBucket(Number(d.value))]);
+        // console.log(data);
+        console.log(data)
+        data_hex = response.map(d => {
+            return {
+                hex: h3.geoToH3(Number(d.latitude), Number(d.longitude), 4),
+                count: Number(d.value)
+            }
+        })
+        console.log(data_hex)
+        mapLoad(data, data_hex, bucket, center, zoom);
     });
 
 }
